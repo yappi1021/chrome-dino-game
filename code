@@ -1,0 +1,144 @@
+# python game with pygame : Jumping dino
+import pygame
+import sys
+
+pygame.init()
+pygame.display.set_caption('Jumping dino')
+MAX_WIDTH = 800
+MAX_HEIGHT = 400
+
+def game_over_screen(screen, score, high_score):
+    """Display game over screen with restart or quit options"""
+    font = pygame.font.SysFont(None, 55)
+    game_over_text = font.render("Game Over!", True, (255, 0, 0))
+    restart_text = font.render("Press R to Restart", True, (0, 0, 255))
+    quit_text = font.render("Press Q to Quit", True, (0, 0, 255))
+    score_text = font.render(f"Score: {score}", True, (0, 0, 0))
+    high_score_text = font.render(f"High Score: {high_score}", True, (0, 0, 0))
+
+    while True:
+        screen.fill((255, 255, 255))
+        screen.blit(game_over_text, (MAX_WIDTH // 2 - 100, MAX_HEIGHT // 2 - 150))
+        screen.blit(score_text, (MAX_WIDTH // 2 - 150, MAX_HEIGHT // 2 - 50))
+        screen.blit(high_score_text, (MAX_WIDTH // 2 - 150, MAX_HEIGHT // 2))
+        screen.blit(restart_text, (MAX_WIDTH // 2 - 150, MAX_HEIGHT // 2 + 50))
+        screen.blit(quit_text, (MAX_WIDTH // 2 - 150, MAX_HEIGHT // 2 + 100))
+
+        pygame.display.update()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:  # Restart
+                    return True, high_score
+                elif event.key == pygame.K_q:  # Quit
+                    pygame.quit()
+                    sys.exit()
+
+def main(high_score=0):
+    # set screen, fps
+    screen = pygame.display.set_mode((MAX_WIDTH, MAX_HEIGHT))
+    fps = pygame.time.Clock()
+
+    # font for score
+    font = pygame.font.SysFont(None, 35)
+
+    # dino
+    imgDino1 = pygame.image.load('dino1.png')
+    imgDino2 = pygame.image.load('dino2.png')
+    dino_height = imgDino1.get_size()[1]
+    dino_width = imgDino1.get_size()[0]
+    dino_bottom = MAX_HEIGHT - dino_height
+    dino_x = 50
+    dino_y = dino_bottom
+    jump_top = 200
+    leg_swap = True
+    is_bottom = True
+    is_go_up = False
+
+    # tree
+    imgTree = pygame.image.load('tree.png')
+    tree_height = imgTree.get_size()[1]
+    tree_width = imgTree.get_size()[0]
+    tree_x = MAX_WIDTH
+    tree_y = MAX_HEIGHT - tree_height
+
+    # score variables
+    score = 0
+    last_score_time = pygame.time.get_ticks()  # Time tracker for score update
+
+    while True:
+        screen.fill((255, 255, 255))
+
+        # event check
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if is_bottom:
+                    is_go_up = True
+                    is_bottom = False
+
+        # dino move
+        if is_go_up:
+            dino_y -= 10.0
+        elif not is_go_up and not is_bottom:
+            dino_y += 10.0
+
+        # dino top and bottom check
+        if is_go_up and dino_y <= jump_top:
+            is_go_up = False
+
+        if not is_bottom and dino_y >= dino_bottom:
+            is_bottom = True
+            dino_y = dino_bottom
+
+        # tree move
+        tree_x -= 12.0
+        if tree_x + tree_width < 0:  # initialize the location when the tree is off-screen
+            tree_x = MAX_WIDTH
+
+        # crash detection (use Y-axis only)
+        if tree_x <= dino_x + 50 and tree_x + tree_width >= dino_x:
+            if dino_y + dino_height >= tree_y:  
+                high_score = max(high_score, score)  # Update high score
+                restart, high_score = game_over_screen(screen, score, high_score)
+                if restart:
+                    main(high_score)
+                else:
+                    pygame.quit()
+                    sys.exit()
+
+        # update (Add 100 points)
+        current_time = pygame.time.get_ticks()
+        if current_time - last_score_time >= 5000:  # 5 seconds have passed
+            score += 100
+            last_score_time = current_time
+
+        # draw tree
+        screen.blit(imgTree, (tree_x, tree_y))
+
+        # draw dino
+        if leg_swap:
+            screen.blit(imgDino1, (dino_x, dino_y))
+            leg_swap = False
+        else:
+            screen.blit(imgDino2, (dino_x, dino_y))
+            leg_swap = True
+
+        # draw score and high score
+        score_text = font.render(f"Score: {score}", True, (0, 0, 0))
+        high_score_text = font.render(f"High Score: {high_score}", True, (0, 0, 0))
+        screen.blit(score_text, (10, 10))
+        screen.blit(high_score_text, (10, 40))
+
+        # update
+        pygame.display.update()
+        fps.tick(30)
+
+
+if __name__ == '__main__':
+    main()
